@@ -1,5 +1,5 @@
 import gym
-from gym import error, spaces, utils
+from gym import spaces
 from gym.utils import seeding
 
 class PongEnv(gym.Env):
@@ -9,37 +9,43 @@ class PongEnv(gym.Env):
     # TODO: Ethan - update values
     L, W = (20, 8)
     PADDLE_WIDTH = 3
+    PADDLE_RANGE = W - 2 * (PADDLE_WIDTH//2)
 
     def __init__(self):
-        super().__init__()
+        self.seed()
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.MultiDiscrete([
             self.L,
             self.W,
-            self.W - 2*(self.PADDLE_WIDTH//2),
+            self.PADDLE_RANGE,
         ])
-        self.reward_range = (0, 1)
-
-        # Generate randomly
-        self.paddle_pos = 0
-        self.ball_pos = (0, 0)
-
+        self.reward_range = (-1, 0)
+        self.reset()
 
     def step(self, action):
         observation = self._take_action(action)
-        reward = None
-        done = None
+        reward = self._get_reward()
+        done = reward < 0
         info = None
         return observation, reward, done, info
 
     def reset(self):
-        pass
+        self.paddle_pos = self.np_random.randint(0, self.PADDLE_RANGE)
+        ball_x = self.np_random.randint(0, self.W)
+        ball_y = self.np_random.randint(0, self.L)
+        self.ball_pos = (ball_x, ball_y)
+
+        return [ball_x, ball_y, self.paddle_pos]
 
     def render(self, mode='human'):
         pass
 
     def close(self):
-        super().close()
+        pass
+
+    def seed(self, seed=None):
+        self.np_random , seed = seeding.np_random(seed)
+        return [seed]
 
     def _take_action(self, action):
         '''
@@ -64,6 +70,7 @@ class PongEnv(gym.Env):
         # TODO: Implement Ethan's game logic
         pass
 
-
-
-
+    def _get_reward(self):
+        if self.ball_pos[1] == 0:
+            return -1
+        return 0
