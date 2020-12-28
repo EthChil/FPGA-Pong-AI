@@ -10,6 +10,10 @@ class PongEnv(gym.Env):
     L, W = (20, 8)
     PADDLE_WIDTH = 3
     PADDLE_RANGE = W - 2 * (PADDLE_WIDTH//2)
+    BALL_DIRECTION_NUM = 6
+    MISS_REWARD = -5
+    HIT_REWARD = 1
+    NOT_LOST_REWARD = 0.1
 
     def __init__(self):
         self.seed()
@@ -18,8 +22,9 @@ class PongEnv(gym.Env):
             self.L,
             self.W,
             self.PADDLE_RANGE,
+            self.BALL_DIRECTION_NUM
         ])
-        self.reward_range = (-1, 0)
+        self.reward_range = (self.MISS_REWARD, self.HIT_REWARD)
         self.reset()
 
     def step(self, action):
@@ -68,9 +73,16 @@ class PongEnv(gym.Env):
 
     def _update_ball_pos(self):
         # TODO: Implement Ethan's game logic
+        # If hits other side of the board, go in random direction
         pass
 
     def _get_reward(self):
         if self.ball_pos[1] == 0:
-            return -1
-        return 0
+            return self.MISS_REWARD
+        elif self._successful_hit():
+            return self.HIT_REWARD
+        return self.NOT_LOST_REWARD
+
+    def _successful_hit(self):
+        # Check if ball is 1 away from paddle and is goign away from it
+        pass

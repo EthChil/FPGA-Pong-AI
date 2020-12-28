@@ -1,6 +1,6 @@
 *
 
 !.gitignore
-!setup.py
+!*.py
 
 !*/gym_pong
