@@ -2,6 +2,42 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 
+
+class PongBoard():
+
+    def __init__(self, L, W, paddle_width, init_ball_pos=None, init_ball_direction=None, init_paddle_pos=None):
+        # Board params
+        self.L = L
+        self.W = W
+        self.paddle_width = paddle_width
+        self.paddle_range = W - 2 * (paddle_width//2)
+        # Optional init params
+        self.reset(init_ball_pos, init_ball_direction, init_paddle_pos)
+
+    def reset(self, init_ball_pos=None, init_ball_direction=None, init_paddle_pos=None):
+        self.ball_pos = init_ball_pos
+        self.ball_direction = init_ball_direction
+        self.paddle_pos = init_paddle_pos
+
+    def update(self, paddle_move=0):
+        self.paddle_pos = max(0, self.paddle_pos + paddle_move)
+        self.paddle_pos = min(self.paddle_pos, self.paddle_range-1)
+        # update ball position
+        # if ball hits other side of board, take random direction
+        # TODO: Ethan - add board update logic
+
+    def get_observation(self):
+        return [self.ball_pos[0], self.ball_pos[1], self.ball_direction, self.paddle_pos]
+
+    def missed_ball(self):
+        # TODO: Ethan - add logic for when agent misses ball
+        pass
+
+    def hit_ball(self):
+        # TODO: Ethan - add logic for when agent hits ball
+        pass
+
+
 class PongEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
@@ -21,28 +57,32 @@ class PongEnv(gym.Env):
         self.observation_space = spaces.MultiDiscrete([
             self.L,
             self.W,
-            self.PADDLE_RANGE,
-            self.BALL_DIRECTION_NUM
+            self.BALL_DIRECTION_NUM,
+            self.PADDLE_RANGE
         ])
         self.reward_range = (self.MISS_REWARD, self.HIT_REWARD)
+        self.board = PongBoard(self.L, self.W, self.PADDLE_WIDTH)
         self.reset()
 
     def step(self, action):
-        observation = self._take_action(action)
+        self._take_action(action)
+        observation = self.board.get_observation()
         reward = self._get_reward()
-        done = reward < 0
+        done = reward == self.MISS_REWARD
         info = None
         return observation, reward, done, info
 
     def reset(self):
-        self.paddle_pos = self.np_random.randint(0, self.PADDLE_RANGE)
+        paddle_pos = self.np_random.randint(0, self.PADDLE_RANGE)
         ball_x = self.np_random.randint(0, self.W)
         ball_y = self.np_random.randint(0, self.L)
-        self.ball_pos = (ball_x, ball_y)
+        ball_pos = (ball_x, ball_y)
+        ball_direction = self.np_random.randint(0, self.BALL_DIRECTION_NUM)
 
-        return [ball_x, ball_y, self.paddle_pos]
+        self.board.reset(ball_pos, ball_direction, paddle_pos)
 
     def render(self, mode='human'):
+        # TODO: Ivan - `render pong board to console
         pass
 
     def close(self):
@@ -53,36 +93,20 @@ class PongEnv(gym.Env):
         return [seed]
 
     def _take_action(self, action):
-        '''
-        :param action: One of (0, 1, 2), 0 is no action, 1 is left, 2 is right
-        :return:
-        '''
-        paddle_move = 0
-
         if action == 1:
-            paddle_move = -1
+            # Move paddle left
+            self.board.update(paddle_move=-1)
         elif action == 2:
-            paddle_move = 1
-
-        if self.observation_space.contains([self.ball_pos[0], self.ball_pos[1], self.paddle_pos + paddle_move]):
-            self.paddle_pos += paddle_move
-
-        self._update_ball_pos()
-
-        return [self.ball_pos[0], self.ball_pos[1], self.paddle_pos]
-
-    def _update_ball_pos(self):
-        # TODO: Implement Ethan's game logic
-        # If hits other side of the board, go in random direction
-        pass
+            # Move paddle right
+            self.board.update(paddle_move=1)
+        else:
+            # No movement, just update ball location
+            self.board.update()
 
     def _get_reward(self):
-        if self.ball_pos[1] == 0:
+        if self.board.missed_ball() == 0:
             return self.MISS_REWARD
-        elif self._successful_hit():
+        elif self.board.hit_ball():
             return self.HIT_REWARD
-        return self.NOT_LOST_REWARD
 
-    def _successful_hit(self):
-        # Check if ball is 1 away from paddle and is goign away from it
-        pass
+        return self.NOT_LOST_REWARD
