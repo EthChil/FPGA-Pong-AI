@@ -1,6 +1,8 @@
 import gym
+import pyglet
 from gym import spaces
 from gym.utils import seeding
+from gym.envs.classic_control import rendering
 
 
 class PongBoard():
@@ -14,7 +16,7 @@ class PongBoard():
         # Optional init params
         self.reset(init_ball_pos, init_ball_direction, init_paddle_pos)
 
-    def reset(self, init_ball_pos=None, init_ball_direction=None, init_paddle_pos=None):
+    def reset(self, init_ball_pos, init_ball_direction, init_paddle_pos):
         self.ball_pos = init_ball_pos
         self.ball_direction = init_ball_direction
         self.paddle_pos = init_paddle_pos
@@ -55,8 +57,8 @@ class PongEnv(gym.Env):
         self.seed()
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.MultiDiscrete([
-            self.L,
             self.W,
+            self.L,
             self.BALL_DIRECTION_NUM,
             self.PADDLE_RANGE
         ])
@@ -82,11 +84,39 @@ class PongEnv(gym.Env):
         self.board.reset(ball_pos, ball_direction, paddle_pos)
 
     def render(self, mode='human'):
-        # TODO: Ivan - `render pong board to console
-        pass
+        ball_radius = 10
+        screen_width = 2 * ball_radius * self.W
+        screen_height = 2 * ball_radius * self.L
+
+        if self.viewer is None:
+            self.viewer = rendering.Viewer(screen_width, screen_height)
+            # Ball geom and transform
+            ball = rendering.make_circle(radius=ball_radius, res=10, filled=True)
+            self.ball_transform = rendering.Transform()
+            ball.add_attr(self.ball_transform)
+            ball.set_color(0, 0, 0)
+            self.viewer.add_geom(ball)
+            # Paddle geom and transform
+            paddle = rendering.make_capsule(4 * ball_radius, 2 * ball_radius)
+            self.paddle_transform = rendering.Transform()
+            paddle.add_attr(self.paddle_transform)
+            paddle.set_color(0, 0, 0)
+            self.viewer.add_geom(paddle)
+
+        ball_x, ball_y = self.board.ball_pos
+        ball_x ,ball_y = 2 * ball_radius * ball_x, 2 * ball_radius * ball_y
+        self.ball_transform.set_translation(ball_x + ball_radius, ball_y + ball_radius)
+
+        paddle_x, paddle_y = ball_radius * (2 * self.board.paddle_pos + 1), ball_radius
+        self.paddle_transform.set_translation(paddle_x, paddle_y)
+
+        return self.viewer.render()
+
 
     def close(self):
-        pass
+        if self.viewer:
+            self.viewer.close()
+            self.viewer = None
 
     def seed(self, seed=None):
         self.np_random , seed = seeding.np_random(seed)

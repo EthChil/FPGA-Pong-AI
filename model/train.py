@@ -14,5 +14,6 @@ if __name__ == '__main__':
         episode_reward = agent.train_step()
         rewards.append(episode_reward)
 
+    env.close()
     plt.plot(rewards)
     plt.show()

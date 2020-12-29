@@ -33,6 +33,8 @@ class PongAgent():
         state = initial_state
 
         for t in tf.range(max_steps):
+            self.env.render()
+
             states = states.write(t, state)
             state = tf.expand_dims(state, 0)
 
