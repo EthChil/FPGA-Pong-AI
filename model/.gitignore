@@ -1,0 +1,6 @@
+*
+
+!.gitignore
+!*.py
+
+!*/gym_pong
